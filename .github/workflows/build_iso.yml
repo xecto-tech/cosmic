@@ -34,7 +34,8 @@ jobs:
       fail-fast: false
       matrix:
         image_name:
-          [cosmic, cosmic-nvidia, cosmic-silverblue, cosmic-silverblue-nvidia]
+          [cosmic]
+          # [cosmic, cosmic-nvidia, cosmic-silverblue, cosmic-silverblue-nvidia]
         fedora_version: [41]
     env:
       IMAGE_TAG: ${{ matrix.fedora_version }}-amd64
@@ -43,6 +44,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PATT }}
+
 
       - name: Get Flatpak dependencies
         id: flatpak-dependencies
