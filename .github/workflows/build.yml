@@ -7,14 +7,19 @@ on:
     - cron: "0 15 * * *" # 3pm UTC everyday (timed against official fedora container pushes)
   workflow_dispatch:
 
-env:
-  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.fedora_version }}
   cancel-in-progress: true
 
 jobs:
+  lowercase-repo:
+    runs-on: ubuntu-latest
+    outputs:
+      lowercase_repo: ${{ steps.lowercase.outputs.repository }}
+    steps:
+      - id: lowercase
+        run: echo "repository=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
   build:
     name: Build
     runs-on: ubuntu-24.04
@@ -31,18 +36,18 @@ jobs:
           - 41
         flavor:
           - base
-          - base-nvidia
+          #- base-nvidia
           - silverblue
-          - silverblue-nvidia
+          #- silverblue-nvidia
           - kinoite
-          - kinoite-nvidia
+          #- kinoite-nvidia
 
     steps:
       # Checkout push-to-registry action GitHub repository
       - name: Maximize build space
         uses: ublue-os/remove-unwanted-software@v9
         with:
-          remove-android: 'true'
+          remove-android: "true"
 
       - name: Checkout Push to Registry action
         uses: actions/checkout@v4
@@ -96,7 +101,6 @@ jobs:
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/ublue-os/cosmic/main/README.md
             io.artifacthub.package.logo-url=https://avatars.githubusercontent.com/u/120078124?s=200&v=4
 
-
       # Create Variables. Use UBlue images for amd64, fedora-ostree desktop for arm64
       - name: matrix-variables
         run: |
@@ -128,8 +132,8 @@ jobs:
         id: rechunk
         uses: hhd-dev/rechunk@v1.1.3
         with:
-          rechunk: 'ghcr.io/hhd-dev/rechunk:v0.8.1'
-          ref: 'raw-img'
+          rechunk: "ghcr.io/hhd-dev/rechunk:v0.8.1"
+          ref: "raw-img"
           prev-ref: "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.version }}"
           skip_compression: true
           version: ${{ matrix.version }}
@@ -201,3 +205,4 @@ jobs:
       - name: Exit
         shell: bash
         run: exit 0
+
