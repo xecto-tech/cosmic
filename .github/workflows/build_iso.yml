@@ -52,6 +52,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
+      
+      - name: Set up Docker config with credentials
+        run: |
+          mkdir -p $HOME/.docker
+          echo '{"auths":{"ghcr.io":{"auth":"'$(echo -n "${{ github.actor }}:${{ secrets.GHCR_PAT }}" | base64)'"}}}' > $HOME/.docker/config.json
 
       - name: Get Flatpak dependencies
         id: flatpak-dependencies
@@ -116,6 +121,8 @@ jobs:
           enrollment_password: "universalblue"
           flatpak_remote_refs_dir: ${{ steps.flatpak-dependencies.outputs.FLATPAK_REFS_DIR }}
           enable_flatpak_dependencies: false
+          registry_username: ${{ github.actor }}
+          registry_password: ${{ secrets.GHCR_PAT }}
 
       - name: Upload ISOs and Checksum to Job Artifacts
         uses: actions/upload-artifact@v4
