@@ -7,15 +7,21 @@ on:
     paths:
       - ".github/workflows/build_iso.yml"
 
-env:
-  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  lowercase-repo:
+    runs-on: ubuntu-latest
+    outputs:
+      lowercase_repo: ${{ steps.lowercase.outputs.repository }}
+    steps:
+      - id: lowercase
+        run: echo "repository=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
   build-iso:
+    needs: lowercase-repo
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -29,7 +35,7 @@ jobs:
         fedora_version: [41]
     env:
       IMAGE_TAG: ${{ matrix.fedora_version }}-amd64
-      IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+      IMAGE_REGISTRY: ghcr.io/${{ needs.lowercase-repo.outputs.lowercase_repo }}
 
     steps:
       - name: Checkout
