@@ -53,16 +53,23 @@ jobs:
           password: ${{ secrets.GHCR_PAT }}
 
       
-      # - name: Set up Docker config with credentials
-      #   run: |
-      #     mkdir -p $HOME/.docker
-      #     echo '{"auths":{"ghcr.io":{"auth":"'$(echo -n "${{ github.actor }}:${{ secrets.GHCR_PAT }}" | base64)'"}}}' > $HOME/.docker/config.json
       - name: Create Docker config directory
         run: |
           mkdir -p $HOME/.docker
           echo '{"auths":{"ghcr.io":{"auth":"'$(echo -n "${{ github.actor }}:${{ secrets.GHCR_PAT }}" | base64)'"}}}' > $HOME/.docker/config.json
-          cat $HOME/.docker/config.json # For debugging - remove this in production
+
+      - name: Get available image tags
+        id: get-tags
+        run: |
+          AVAILABLE_TAGS=$(curl -s \
+          -H "Authorization: Bearer ${{ secrets.GHCR_PAT }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/user/packages/container/${{ matrix.image_name }}/versions" | grep -o '"tags":\[[^]]*\]' | tr -d '[]" ' | tr ',' '\n')
     
+          # Find the most recent tag matching our version
+          LATEST_TAG=$(echo "$AVAILABLE_TAGS" | grep "^${{ matrix.fedora_version }}-" | sort -r | head -1)
+          echo "Found latest tag: $LATEST_TAG"
+          echo "image_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
       - name: Get Flatpak dependencies
         id: flatpak-dependencies
@@ -122,12 +129,12 @@ jobs:
           # We cannot use Silverblue variant since we need the user creation options in anaconda
           variant: "Kinoite"
           version: ${{ matrix.fedora_version }}
-          image_tag: ${{ env.IMAGE_TAG }}
+          image_tag: ${{ steps.get-tags.outputs.image_tag }}
           secure_boot_key_url: "https://github.com/ublue-os/akmods/raw/main/certs/public_key.der"
           enrollment_password: "universalblue"
           flatpak_remote_refs_dir: ${{ steps.flatpak-dependencies.outputs.FLATPAK_REFS_DIR }}
           enable_flatpak_dependencies: false
-          docker_config_path: $HOME/.docker/config.json
+
 
       - name: Upload ISOs and Checksum to Job Artifacts
         uses: actions/upload-artifact@v4
