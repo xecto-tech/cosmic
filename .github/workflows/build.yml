@@ -37,9 +37,9 @@ jobs:
         flavor:
           - base
           #- base-nvidia
-          - silverblue
+          #- silverblue
           #- silverblue-nvidia
-          - kinoite
+          #- kinoite
           #- kinoite-nvidia
 
     steps:
